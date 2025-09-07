@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, FileText, Clock, CheckCircle } from "lucide-react";
+import { dataProcessor } from "@/services/dataProcessor";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProcessingStep {
   id: string;
@@ -19,7 +21,9 @@ const Processing = () => {
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const steps: ProcessingStep[] = [
     { id: 'parsing', title: 'Parsing CSV', status: 'pending' },
@@ -35,59 +39,114 @@ const Processing = () => {
   const fileInfo = JSON.parse(sessionStorage.getItem('uploadedFile') || '{}');
 
   useEffect(() => {
-    if (!fileInfo.name) {
+    if (!fileInfo.name || !fileInfo.content) {
       navigate('/');
       return;
     }
 
-    // Simulate processing
+    // Real processing
     const processFile = async () => {
-      const stepDurations = [1000, 2000, 3000, 2000, 1500];
-      
-      for (let i = 0; i < steps.length; i++) {
-        // Update current step to active
+      try {
+        // Step 1: Parsing CSV
         setProcessSteps(prev => prev.map((step, index) => ({
           ...step,
-          status: index === i ? 'active' : index < i ? 'completed' : 'pending'
+          status: index === 0 ? 'active' : 'pending'
+        })));
+        setCurrentStep(0);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validating CSV structure...`]);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] CSV parsing completed`]);
+        setProgress(20);
+
+        // Step 2: Extracting ASINs
+        setProcessSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === 1 ? 'active' : index < 1 ? 'completed' : 'pending'
+        })));
+        setCurrentStep(1);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Extracting ASINs from Amazon URLs...`]);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setProgress(40);
+
+        // Step 3: Fetching from Pattern API (actual processing)
+        setProcessSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === 2 ? 'active' : index < 2 ? 'completed' : 'pending'
+        })));
+        setCurrentStep(2);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Fetching competitor data from Pattern API...`]);
+        
+        // Process the actual data
+        const results = await dataProcessor.processCSVData(fileInfo.content, fileInfo.name);
+        
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Found ${results.asins.length} unique ASINs`]);
+        results.asins.forEach((asin, index) => {
+          setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ASIN ${asin.asin} — competitors found: ${asin.competitors.length}`]);
+        });
+        
+        setProgress(70);
+
+        // Step 4: Computing insights
+        setProcessSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === 3 ? 'active' : index < 3 ? 'completed' : 'pending'
+        })));
+        setCurrentStep(3);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Computing keyword gaps...`]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Calculating priority scores...`]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Generating recommendations...`]);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Insights computed successfully`]);
+        setProgress(90);
+
+        // Step 5: Rendering charts & report
+        setProcessSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === 4 ? 'active' : index < 4 ? 'completed' : 'pending'
+        })));
+        setCurrentStep(4);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Generating charts...`]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Building HTML report...`]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Preparing downloads...`]);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] All assets ready`]);
+        setProgress(100);
+
+        // Mark all as completed
+        setProcessSteps(prev => prev.map(step => ({
+          ...step,
+          status: 'completed'
+        })));
+
+        // Store results and navigate
+        sessionStorage.setItem('processedResults', JSON.stringify(results));
+        
+        setTimeout(() => {
+          navigate('/results');
+        }, 1000);
+
+      } catch (error) {
+        console.error('Processing failed:', error);
+        setError(error instanceof Error ? error.message : 'Processing failed');
+        setProcessSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === currentStep ? 'error' : index < currentStep ? 'completed' : 'pending'
         })));
         
-        setCurrentStep(i);
-        
-        // Add some logs
-        const stepLogs = {
-          0: ['Validating CSV structure...', 'Found 12 rows with URL column', 'CSV parsing completed'],
-          1: ['Extracting ASINs from Amazon URLs...', 'ASIN B0CC282PBW extracted', 'ASIN B0COMP0001 extracted', 'Found 12 unique ASINs'],
-          2: ['Calling Pattern API...', 'https://insights.pattern.com/digital-shelf/B0CC282PBW/competitors/top-five?country_code=US', 'ASIN B0CC282PBW — competitors found: 5', 'Fetching competitor data complete'],
-          3: ['Computing keyword gaps...', 'Calculating priority scores...', 'Generating recommendations...', 'Insights computed successfully'],
-          4: ['Generating charts...', 'Building HTML report...', 'Preparing downloads...', 'All assets ready']
-        };
-
-        // Add logs for current step
-        for (const log of stepLogs[i as keyof typeof stepLogs] || []) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-          setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log}`]);
-        }
-
-        // Update progress
-        setProgress(((i + 1) / steps.length) * 100);
-
-        await new Promise(resolve => setTimeout(resolve, stepDurations[i]));
+        toast({
+          title: "Processing Failed",
+          description: error instanceof Error ? error.message : 'An unknown error occurred',
+          variant: "destructive",
+        });
       }
-
-      // Mark all as completed
-      setProcessSteps(prev => prev.map(step => ({
-        ...step,
-        status: 'completed'
-      })));
-
-      // Navigate to results after a brief delay
-      setTimeout(() => {
-        navigate('/results');
-      }, 1000);
     };
 
     processFile();
-  }, [fileInfo.name, navigate]);
+  }, [fileInfo.name, fileInfo.content, navigate, currentStep, toast]);
 
   const getStepIcon = (status: ProcessingStep['status']) => {
     switch (status) {

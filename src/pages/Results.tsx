@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,100 +28,38 @@ import { ClicksShareChart } from "@/components/charts/ClicksShareChart";
 import { ReviewsGapChart } from "@/components/charts/ReviewsGapChart";
 import { PortfolioHeatmap } from "@/components/charts/PortfolioHeatmap";
 import { CompetitorLandscape } from "@/components/charts/CompetitorLandscape";
-
-// Mock data structure matching the API spec
-const mockResults = {
-  runId: "abc123",
-  generatedAt: "2025-09-05T12:00:00Z",
-  portfolio: {
-    asinsProcessed: 12,
-    avgRating: 4.4,
-    avgPrice: 23.95,
-    totalEstClicks: 3120,
-    avgPriorityScore: 0.56
-  },
-  asins: [
-    {
-      asin: "B0CC282PBW",
-      label: "Hero Product 1",
-      target: {
-        price: 24.99,
-        est_daily_impressions: 12000,
-        est_daily_clicks: 360,
-        ratings_count: 540,
-        avg_rating: 4.3,
-        keywords_top4: 18,
-        keywords_page1: 92
-      },
-      comp_avg: {
-        price: 23.29,
-        rating: 4.4,
-        ratings_count: 1050,
-        keywords_top4: 18.6,
-        keywords_page1: 104,
-        est_daily_clicks: 264
-      },
-      competitors: [
-        {
-          rank: 1,
-          comp_asin: "B0COMP0001",
-          product_name: "Premium Widget Pro",
-          brand_name: "BrandA",
-          price: 22.99,
-          rating: 4.4,
-          ratings_count: 800,
-          keywords_top4: 20,
-          keywords_page1: 110,
-          est_daily_clicks: 310
-        },
-        {
-          rank: 2,
-          comp_asin: "B0COMP0002",
-          product_name: "Smart Widget Elite",
-          brand_name: "BrandB",
-          price: 21.49,
-          rating: 4.5,
-          ratings_count: 1200,
-          keywords_top4: 19,
-          keywords_page1: 98,
-          est_daily_clicks: 285
-        }
-      ],
-      insights: {
-        kw4_gap: 0.6,
-        kwp1_gap: 12.0,
-        rating_gap: -0.10,
-        reviews_deficit: 510,
-        price_position: "above",
-        clicks_share: 0.58,
-        priority_score: 0.72,
-        actions: [
-          {
-            title: "Expand Page-1 coverage by ~12 keywords",
-            why: "You trail comp avg on Page-1 listings which limits discoverability.",
-            impact: ["↑ clicks", "↑ rank"],
-            effort: "Low",
-            target: "Reach ~104 Page-1 keywords"
-          },
-          {
-            title: "Accelerate review acquisition (~500 additional)",
-            why: "Large social proof gap vs comp avg is suppressing CVR and ranking.",
-            impact: ["↑ CVR", "↑ rank"],
-            effort: "Med",
-            target: "1050 total ratings"
-          }
-        ]
-      }
-    }
-  ]
-};
+import { ProcessedData } from "@/services/dataProcessor";
 
 const Results = () => {
-  const [selectedAsin, setSelectedAsin] = useState(mockResults.asins[0].asin);
+  const [results, setResults] = useState<ProcessedData | null>(null);
+  const [selectedAsin, setSelectedAsin] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const selectedAsinData = mockResults.asins.find(asin => asin.asin === selectedAsin) || mockResults.asins[0];
+  useEffect(() => {
+    const processedResults = sessionStorage.getItem('processedResults');
+    if (!processedResults) {
+      navigate('/');
+      return;
+    }
+    
+    try {
+      const data: ProcessedData = JSON.parse(processedResults);
+      setResults(data);
+      if (data.asins.length > 0) {
+        setSelectedAsin(data.asins[0].asin);
+      }
+    } catch (error) {
+      console.error('Failed to parse results:', error);
+      navigate('/');
+    }
+  }, [navigate]);
+
+  if (!results) {
+    return <div>Loading...</div>;
+  }
+
+  const selectedAsinData = results.asins.find(asin => asin.asin === selectedAsin) || results.asins[0];
 
   const handleDownload = (type: string) => {
     toast({
@@ -160,10 +98,10 @@ const Results = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-primary">
-                Insights for sample_data.csv
+                Insights for {sessionStorage.getItem('uploadedFile') ? JSON.parse(sessionStorage.getItem('uploadedFile')!).name : 'uploaded_file.csv'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Run completed {new Date(mockResults.generatedAt).toLocaleString()}
+                Run completed {new Date(results.generatedAt).toLocaleString()}
               </p>
             </div>
             <div className="flex gap-2">
@@ -200,7 +138,7 @@ const Results = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{mockResults.portfolio.asinsProcessed}</div>
+              <div className="text-2xl font-bold text-primary">{results.portfolio.asinsProcessed}</div>
             </CardContent>
           </Card>
 
@@ -214,7 +152,7 @@ const Results = () => {
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-1">
                 <Star className="w-5 h-5 text-warning fill-current" />
-                {mockResults.portfolio.avgRating}
+                {results.portfolio.avgRating}
               </div>
             </CardContent>
           </Card>
@@ -229,7 +167,7 @@ const Results = () => {
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-1">
                 <DollarSign className="w-5 h-5 text-success" />
-                {mockResults.portfolio.avgPrice}
+                {results.portfolio.avgPrice}
               </div>
             </CardContent>
           </Card>
@@ -244,7 +182,7 @@ const Results = () => {
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-1">
                 <Eye className="w-5 h-5 text-primary" />
-                {mockResults.portfolio.totalEstClicks.toLocaleString()}
+                {results.portfolio.totalEstClicks.toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -259,7 +197,7 @@ const Results = () => {
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-1">
                 <TrendingUp className="w-5 h-5 text-warning" />
-                {mockResults.portfolio.avgPriorityScore}
+                {results.portfolio.avgPriorityScore}
               </div>
             </CardContent>
           </Card>
@@ -296,7 +234,7 @@ const Results = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockResults.asins.map((asin) => (
+                      {results.asins.map((asin) => (
                         <tr key={asin.asin} className="hover:bg-muted/20">
                           <td className="p-3 font-mono text-sm">{asin.asin}</td>
                           <td className="p-3">{asin.label}</td>
@@ -324,11 +262,11 @@ const Results = () => {
               </TabsContent>
 
               <TabsContent value="heatmap">
-                <PortfolioHeatmap data={mockResults.asins} />
+                <PortfolioHeatmap data={results.asins} />
               </TabsContent>
 
               <TabsContent value="landscape">
-                <CompetitorLandscape data={mockResults.asins} />
+                <CompetitorLandscape data={results.asins} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -344,7 +282,7 @@ const Results = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockResults.asins.map((asin) => (
+                  {results.asins.map((asin) => (
                     <SelectItem key={asin.asin} value={asin.asin}>
                       {asin.asin} - {asin.label}
                     </SelectItem>
