@@ -42,9 +42,9 @@ const Landing = () => {
   const steps = [
     { number: 1, title: "Upload CSV", description: "Your Amazon PDP URLs" },
     { number: 2, title: "Extract ASINs", description: "Auto-detect from URLs" },
-    { number: 3, title: "Fetch & Normalise", description: "Collect competitor data" },
+    { number: 3, title: "Fetch Competitor Data", description: "Pull top 5 rivals via API" },
     { number: 4, title: "Analyse & Score", description: "Generate insights" },
-    { number: 5, title: "Report & Downloads", description: "Visual recommendations" },
+    { number: 5, title: "Report & Download", description: "Visual recommendations" },
   ];
 
   const features = [
@@ -56,12 +56,12 @@ const Landing = () => {
     {
       icon: BarChart3,
       title: "Competitive Context",
-      description: "We compare you vs the top 5 rival ASINs for comprehensive analysis."
+      description: "We pull and analyze top 5 rivals per ASIN."
     },
     {
       icon: Zap,
       title: "Actionable Output",
-      description: "Clear charts, gaps, and next steps — not just data dumps."
+      description: "Clear charts, gaps, and prioritized recommendations."
     }
   ];
 
@@ -90,8 +90,8 @@ const Landing = () => {
                   <span className="block text-primary">Snapshot</span>
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">
-                  Upload your Amazon PDP URLs, auto-extract ASINs, benchmark against competitors, 
-                  and get quick, visual recommendations to improve PDP health.
+                  Upload your Amazon PDP URLs, auto-extract ASINs, fetch competitor data, 
+                  and get instant insights to optimize your product pages.
                 </p>
               </div>
 
@@ -201,7 +201,20 @@ const Landing = () => {
                     Optional columns: label, brand, price_floor, target_rating, target_reviews_count
                   </div>
                 </div>
-                <Button variant="link" className="p-0 h-auto text-sm">
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => {
+                  const csvContent = `url,label,brand,price_floor,target_rating,target_reviews_count
+https://amazon.com/dp/B0CC282PBW,Hero Product 1,YourBrand,20.00,4.5,1000
+https://amazon.com/dp/B0SAMPLE123,Premium Widget,YourBrand,25.00,4.4,800
+https://amazon.com/dp/B0EXAMPLE456,Smart Device,YourBrand,30.00,4.6,1200`;
+                  
+                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'sample_amazon_urls.csv';
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                }}>
                   Download sample CSV
                 </Button>
               </div>
@@ -220,17 +233,17 @@ const Landing = () => {
                 </div>
               )}
 
-              <Button 
-                variant="hero" 
-                size="lg" 
-                className="w-full"
-                disabled={!isValidFile}
-                onClick={handleGenerateInsights}
-              >
-                <BarChart3 className="w-5 h-5" />
-                Generate Insights
-                <span className="text-xs opacity-75">Let's go</span>
-              </Button>
+                <Button 
+                  variant="hero" 
+                  size="lg" 
+                  className="w-full"
+                  disabled={!isValidFile}
+                  onClick={handleGenerateInsights}
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  Generate Insights
+                  <span className="text-xs opacity-75">Let's go</span>
+                </Button>
 
               <p className="text-xs text-center text-muted-foreground">
                 We only process what you upload. No external storage.

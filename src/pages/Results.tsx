@@ -169,14 +169,17 @@ const Results = () => {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleDownload('HTML report')}>
                 <FileText className="w-4 h-4" />
-                Download HTML report
+                HTML Report
+                <span className="text-xs opacity-75">Make it make sense</span>
               </Button>
               <Button variant="outline" onClick={() => handleDownload('data CSV')}>
-                Download data (CSV)
+                Data Bundle (CSV)
+                <span className="text-xs opacity-75">Show me the gaps</span>
               </Button>
               <Button variant="default" onClick={() => handleDownload('all ZIP')}>
                 <Download className="w-4 h-4" />
-                Download all (ZIP)
+                Everything (ZIP)
+                <span className="text-xs opacity-75">Let's go</span>
               </Button>
               <Button variant="ghost" onClick={() => navigate('/')}>
                 Re-run with new CSV
@@ -406,10 +409,10 @@ const Results = () => {
 
                   <Card className="border-primary/20 bg-primary/5">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Price position</span>
-                        <InfoTooltip content="Your price vs competitor average: above (>~3%), aligned (±3%), or below (<~-3%)." />
-                      </div>
+                       <div className="flex items-center justify-between mb-2">
+                         <span className="text-sm font-medium">Price position</span>
+                         <InfoTooltip content="Your price vs competitor average: above (>3%), aligned (±3%), or below (<-3%)." />
+                       </div>
                       <div className="text-2xl font-bold">
                         {formatPricePosition(selectedAsinData.insights.price_position)}
                       </div>

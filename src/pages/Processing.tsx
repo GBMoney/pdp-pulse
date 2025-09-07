@@ -24,9 +24,9 @@ const Processing = () => {
   const steps: ProcessingStep[] = [
     { id: 'parsing', title: 'Parsing CSV', status: 'pending' },
     { id: 'extracting', title: 'Extracting ASINs', status: 'pending' },
-    { id: 'collecting', title: 'Collecting data (Target & Competitors)', status: 'pending' },
+    { id: 'fetching', title: 'Fetching from Pattern API', status: 'pending' },
     { id: 'computing', title: 'Computing insights', status: 'pending' },
-    { id: 'rendering', title: 'Rendering charts & report', status: 'pending' },
+    { id: 'rendering', title: 'Rendering charts/report', status: 'pending' },
   ];
 
   const [processSteps, setProcessSteps] = useState(steps);
@@ -57,7 +57,7 @@ const Processing = () => {
         const stepLogs = {
           0: ['Validating CSV structure...', 'Found 12 rows with URL column', 'CSV parsing completed'],
           1: ['Extracting ASINs from Amazon URLs...', 'ASIN B0CC282PBW extracted', 'ASIN B0COMP0001 extracted', 'Found 12 unique ASINs'],
-          2: ['Fetching product data...', 'ASIN B0CC282PBW — competitors found: 5', 'ASIN B0COMP0001 — data collected', 'Competitor analysis complete'],
+          2: ['Calling Pattern API...', 'https://insights.pattern.com/digital-shelf/B0CC282PBW/competitors/top-five?country_code=US', 'ASIN B0CC282PBW — competitors found: 5', 'Fetching competitor data complete'],
           3: ['Computing keyword gaps...', 'Calculating priority scores...', 'Generating recommendations...', 'Insights computed successfully'],
           4: ['Generating charts...', 'Building HTML report...', 'Preparing downloads...', 'All assets ready']
         };
