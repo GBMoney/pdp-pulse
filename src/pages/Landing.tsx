@@ -19,7 +19,7 @@ const Landing = () => {
     setIsValidFile(isValid);
   };
 
-  const handleGenerateInsights = () => {
+  const handleGenerateInsights = async () => {
     if (!file || !isValidFile) {
       toast({
         title: "Invalid file",
@@ -29,14 +29,32 @@ const Landing = () => {
       return;
     }
 
-    // Store file in sessionStorage for processing page
-    sessionStorage.setItem('uploadedFile', JSON.stringify({
-      name: file.name,
-      size: file.size,
-      type: file.type
-    }));
+    try {
+      console.log('Reading file content...', file.name);
+      // Read file content
+      const content = await file.text();
+      console.log('File content read successfully, length:', content.length);
+      
+      // Store file and content in sessionStorage for processing page
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        content: content
+      };
+      
+      sessionStorage.setItem('uploadedFile', JSON.stringify(fileData));
+      console.log('File data stored in sessionStorage, navigating to processing...');
 
-    navigate('/processing');
+      navigate('/processing');
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Error reading file",
+        description: "Failed to read the uploaded file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const steps = [
