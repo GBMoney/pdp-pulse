@@ -62,6 +62,7 @@ export function FileUpload({ onFileValidated }: FileUploadProps) {
 
       setPreview(filePreview);
       onFileValidated(file, hasUrlColumn && lines.length > 1);
+      console.log('File validation result:', { hasUrlColumn, rowCount: lines.length - 1, isValid: hasUrlColumn && lines.length > 1 });
 
       if (hasUrlColumn) {
         toast({

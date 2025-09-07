@@ -30,12 +30,10 @@ const Landing = () => {
     }
 
     try {
-      console.log('Reading file content...', file.name);
-      // Read file content
+      console.log('Starting file processing...', file.name);
       const content = await file.text();
-      console.log('File content read successfully, length:', content.length);
+      console.log('File content loaded, length:', content.length);
       
-      // Store file and content in sessionStorage for processing page
       const fileData = {
         name: file.name,
         size: file.size,
@@ -44,13 +42,12 @@ const Landing = () => {
       };
       
       sessionStorage.setItem('uploadedFile', JSON.stringify(fileData));
-      console.log('File data stored in sessionStorage, navigating to processing...');
-
+      console.log('Navigating to processing page...');
       navigate('/processing');
     } catch (error) {
-      console.error('Error reading file:', error);
+      console.error('File processing error:', error);
       toast({
-        title: "Error reading file",
+        title: "Error reading file", 
         description: "Failed to read the uploaded file. Please try again.",
         variant: "destructive",
       });
@@ -128,10 +125,24 @@ const Landing = () => {
                   variant="ghost" 
                   size="xl"
                   disabled={!isValidFile}
-                  onClick={handleGenerateInsights}
+                  onClick={() => {
+                    console.log('Generate Insights clicked!', { file, isValidFile });
+                    handleGenerateInsights();
+                  }}
                 >
                   Generate Insights
                   {!isValidFile && <span className="text-xs">(upload file first)</span>}
+                </Button>
+                
+                {/* Temporary test button */}
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    console.log('Test navigation clicked');
+                    navigate('/processing');
+                  }}
+                >
+                  Test Navigation (Debug)
                 </Button>
               </div>
             </div>
