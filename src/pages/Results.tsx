@@ -548,8 +548,10 @@ const Results = () => {
               <div className="space-y-6">
                 <KeywordCoverageChart data={selectedAsinData} />
                 <PriceRatingChart data={selectedAsinData} />
-                <ClicksShareChart data={selectedAsinData} />
-                <ReviewsGapChart data={selectedAsinData} />
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <ReviewsGapChart data={selectedAsinData} />
+                  <ClicksShareChart data={selectedAsinData} />
+                </div>
               </div>
             </div>
           </CardContent>
