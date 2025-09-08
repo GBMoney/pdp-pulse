@@ -283,20 +283,6 @@ const Results = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleDownload('HTML report')}>
-                <FileText className="w-4 h-4" />
-                HTML Report
-                <span className="text-xs opacity-75">Make it make sense</span>
-              </Button>
-              <Button variant="outline" onClick={() => handleDownload('data CSV')}>
-                Data Bundle (CSV)
-                <span className="text-xs opacity-75">Show me the gaps</span>
-              </Button>
-              <Button variant="default" onClick={() => handleDownload('all ZIP')}>
-                <Download className="w-4 h-4" />
-                Everything (ZIP)
-                <span className="text-xs opacity-75">Let's go</span>
-              </Button>
               <Button variant="ghost" onClick={() => navigate('/')}>
                 Re-run with new CSV
               </Button>
@@ -609,19 +595,6 @@ const Results = () => {
               </Card>
             ))}
 
-            <div className="flex gap-4 pt-4 border-t">
-              <Button variant="hero" onClick={() => handleDownload('HTML report')}>
-                <FileText className="w-4 h-4" />
-                Download HTML report
-              </Button>
-              <Button variant="default" onClick={() => handleDownload('all ZIP')}>
-                <Download className="w-4 h-4" />
-                Download all (ZIP)
-              </Button>
-              <Button variant="outline" onClick={() => handleDownload('data CSV')}>
-                Download data (CSV)
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
