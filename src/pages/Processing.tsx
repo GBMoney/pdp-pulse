@@ -28,7 +28,7 @@ const Processing = () => {
   const steps: ProcessingStep[] = [
     { id: 'parsing', title: 'Parsing CSV', status: 'pending' },
     { id: 'extracting', title: 'Extracting ASINs', status: 'pending' },
-    { id: 'fetching', title: 'Fetching from Pattern API', status: 'pending' },
+    { id: 'fetching', title: 'Fetching competitor data', status: 'pending' },
     { id: 'computing', title: 'Computing insights', status: 'pending' },
     { id: 'rendering', title: 'Rendering charts/report', status: 'pending' },
   ];
@@ -76,7 +76,7 @@ const Processing = () => {
           status: index === 2 ? 'active' : index < 2 ? 'completed' : 'pending'
         })));
         setCurrentStep(2);
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Fetching competitor data from Pattern API...`]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Fetching competitor data...`]);
         
         // Process the actual data
         const results = await dataProcessor.processCSVData(fileInfo.content, fileInfo.name);

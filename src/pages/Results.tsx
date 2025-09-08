@@ -408,7 +408,7 @@ const Results = () => {
                         <th className="p-3 text-left border-b border-border">Rating Gap</th>
                         <th className="p-3 text-left border-b border-border">Price Position</th>
                         <th className="p-3 text-left border-b border-border">Clicks Share</th>
-                        <th className="p-3 text-left border-b border-border">Actions</th>
+                        
                       </tr>
                     </thead>
                     <tbody>
@@ -427,11 +427,6 @@ const Results = () => {
                           <td className="p-3">{asin.insights.rating_gap}</td>
                           <td className="p-3">{formatPricePosition(asin.insights.price_position)}</td>
                           <td className="p-3">{(asin.insights.clicks_share * 100).toFixed(1)}%</td>
-                          <td className="p-3">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedAsin(asin.asin)}>
-                              View details
-                            </Button>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -574,54 +569,6 @@ const Results = () => {
           </CardContent>
         </Card>
 
-        {/* Competitor Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Competitor Analysis
-              <InfoTooltip content="Top 5 products competing with the selected ASIN, as surfaced by the data source." />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-border rounded-lg">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="p-3 text-left border-b border-border">Rank</th>
-                    <th className="p-3 text-left border-b border-border">ASIN</th>
-                    <th className="p-3 text-left border-b border-border">Product Name</th>
-                    <th className="p-3 text-left border-b border-border">Brand</th>
-                    <th className="p-3 text-left border-b border-border">Price</th>
-                    <th className="p-3 text-left border-b border-border">Rating</th>
-                    <th className="p-3 text-left border-b border-border">Reviews</th>
-                    <th className="p-3 text-left border-b border-border">KW Top-4</th>
-                    <th className="p-3 text-left border-b border-border">KW Page-1</th>
-                    <th className="p-3 text-left border-b border-border">Est Daily Clicks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedAsinData.competitors.map((competitor) => (
-                    <tr key={competitor.comp_asin} className="hover:bg-muted/20">
-                      <td className="p-3">#{competitor.rank}</td>
-                      <td className="p-3 font-mono text-sm">{competitor.comp_asin}</td>
-                      <td className="p-3">{competitor.product_name}</td>
-                      <td className="p-3">{competitor.brand_name}</td>
-                      <td className="p-3">${competitor.price}</td>
-                      <td className="p-3 flex items-center gap-1">
-                        <Star className="w-4 h-4 text-warning fill-current" />
-                        {competitor.rating}
-                      </td>
-                      <td className="p-3">{competitor.ratings_count.toLocaleString()}</td>
-                      <td className="p-3">{competitor.keywords_top4}</td>
-                      <td className="p-3">{competitor.keywords_page1}</td>
-                      <td className="p-3">{competitor.est_daily_clicks}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Action Plan */}
         <Card>
