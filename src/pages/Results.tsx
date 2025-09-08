@@ -62,10 +62,188 @@ const Results = () => {
   const selectedAsinData = results.asins.find(asin => asin.asin === selectedAsin) || results.asins[0];
 
   const handleDownload = (type: string) => {
-    toast({
-      title: `Downloading ${type}...`,
-      description: "Your download will begin shortly.",
-    });
+    try {
+      let content = '';
+      let filename = '';
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filePrefix = `digital_shelf_insights_${timestamp}`;
+
+      if (type === 'data CSV') {
+        content = generateCSVContent(results);
+        filename = `${filePrefix}_data.csv`;
+        downloadFile(content, filename, 'text/csv');
+      } else if (type === 'HTML report') {
+        content = generateHTMLReport(results);
+        filename = `${filePrefix}_report.html`;
+        downloadFile(content, filename, 'text/html');
+      } else if (type === 'all ZIP') {
+        // For ZIP, we'll create multiple files
+        const csvContent = generateCSVContent(results);
+        const htmlContent = generateHTMLReport(results);
+        
+        // Create a simple "ZIP-like" download by offering both files
+        downloadFile(csvContent, `${filePrefix}_data.csv`, 'text/csv');
+        setTimeout(() => {
+          downloadFile(htmlContent, `${filePrefix}_report.html`, 'text/html');
+        }, 1000);
+      }
+
+      toast({
+        title: `Downloaded ${type}`,
+        description: "Your file has been saved to your Downloads folder.",
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Download failed",
+        description: "There was an error generating your file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const generateCSVContent = (data: ProcessedData): string => {
+    const headers = [
+      'ASIN', 'Product Name', 'Brand', 'Price', 'Rating', 'Reviews Count',
+      'Keywords Top 4', 'Keywords Page 1', 'Est Daily Clicks', 'Est Daily Impressions',
+      'KW4 Gap', 'Page 1 Gap', 'Rating Gap', 'Reviews Deficit', 'Price Position',
+      'Clicks Share', 'Priority Score', 'Top Action'
+    ];
+
+    const rows = data.asins.map(asin => [
+      asin.asin,
+      `"${asin.target.product_name}"`,
+      asin.target.brand,
+      asin.target.price,
+      asin.target.avg_rating,
+      asin.target.ratings_count,
+      asin.target.keywords_top4,
+      asin.target.keywords_page1,
+      asin.target.est_daily_clicks,
+      asin.target.est_daily_impressions,
+      asin.insights.kw4_gap,
+      asin.insights.kwp1_gap,
+      asin.insights.rating_gap,
+      asin.insights.reviews_deficit,
+      asin.insights.price_position,
+      asin.insights.clicks_share,
+      asin.insights.priority_score,
+      asin.insights.actions.length > 0 ? `"${asin.insights.actions[0].title}"` : ''
+    ]);
+
+    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+  };
+
+  const generateHTMLReport = (data: ProcessedData): string => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Shelf Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .summary { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .asin-section { margin-bottom: 40px; border-left: 4px solid #007acc; padding-left: 20px; }
+        .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .insight-card { background: white; border: 1px solid #ddd; padding: 15px; border-radius: 6px; }
+        .actions { background: #fff3cd; padding: 15px; border-radius: 6px; margin-top: 20px; }
+        .metric { font-size: 1.2em; font-weight: bold; color: #007acc; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Digital Shelf Analysis Report</h1>
+        <p>Generated on: ${new Date(data.generatedAt).toLocaleString()}</p>
+        <p>File: ${data.fileName}</p>
+    </div>
+    
+    <div class="summary">
+        <h2>Portfolio Summary</h2>
+        <div class="insights-grid">
+            <div class="insight-card">
+                <h3>ASINs Processed</h3>
+                <div class="metric">${data.portfolio.asinsProcessed}</div>
+            </div>
+            <div class="insight-card">
+                <h3>Average Rating</h3>
+                <div class="metric">${data.portfolio.avgRating}</div>
+            </div>
+            <div class="insight-card">
+                <h3>Average Price</h3>
+                <div class="metric">$${data.portfolio.avgPrice}</div>
+            </div>
+            <div class="insight-card">
+                <h3>Total Daily Clicks</h3>
+                <div class="metric">${data.portfolio.totalEstClicks}</div>
+            </div>
+        </div>
+    </div>
+
+    ${data.asins.map(asin => `
+    <div class="asin-section">
+        <h2>${asin.target.product_name} (${asin.asin})</h2>
+        
+        <div class="insights-grid">
+            <div class="insight-card">
+                <h4>Price</h4>
+                <div class="metric">$${asin.target.price}</div>
+            </div>
+            <div class="insight-card">
+                <h4>Rating</h4>
+                <div class="metric">${asin.target.avg_rating} ★ (${asin.target.ratings_count} reviews)</div>
+            </div>
+            <div class="insight-card">
+                <h4>Keywords Top 4</h4>
+                <div class="metric">${asin.target.keywords_top4}</div>
+            </div>
+            <div class="insight-card">
+                <h4>Keywords Page 1</h4>
+                <div class="metric">${asin.target.keywords_page1}</div>
+            </div>
+            <div class="insight-card">
+                <h4>Daily Clicks</h4>
+                <div class="metric">${asin.target.est_daily_clicks}</div>
+            </div>
+            <div class="insight-card">
+                <h4>Priority Score</h4>
+                <div class="metric">${asin.insights.priority_score}</div>
+            </div>
+        </div>
+
+        ${asin.insights.actions.length > 0 ? `
+        <div class="actions">
+            <h3>Recommended Actions</h3>
+            ${asin.insights.actions.map(action => `
+                <div style="margin-bottom: 15px;">
+                    <strong>${action.title}</strong><br>
+                    <em>${action.why}</em><br>
+                    Impact: ${action.impact.join(', ')} | Effort: ${action.effort} | Target: ${action.target}
+                </div>
+            `).join('')}
+        </div>
+        ` : ''}
+    </div>
+    `).join('')}
+</body>
+</html>`;
   };
 
   const InfoTooltip = ({ content }: { content: string }) => (

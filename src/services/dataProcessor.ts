@@ -66,6 +66,7 @@ interface ProcessedAsinData {
 }
 
 export interface ProcessedData {
+  fileName: string;
   runId: string;
   generatedAt: string;
   portfolio: {
@@ -100,7 +101,57 @@ class DataProcessor {
     return match ? match[1].toUpperCase() : null;
   }
 
-  private async fetchCompetitorData(asin: string): Promise<{ target: TargetData; competitors: CompetitorData[] }> {
+  private extractProductNameFromUrl(url: string): string {
+    try {
+      // Extract product name from Amazon URL structure
+      // Amazon URLs typically have format: /product-name/dp/ASIN or /dp/ASIN/product-name
+      const urlObj = new URL(this.normalizeUrl(url));
+      const pathname = decodeURIComponent(urlObj.pathname);
+      
+      // Look for patterns like /product-name/dp/ or /dp/ASIN/product-name
+      const dpIndex = pathname.indexOf('/dp/');
+      if (dpIndex !== -1) {
+        // Check if product name is before /dp/
+        const beforeDp = pathname.substring(0, dpIndex);
+        const segments = beforeDp.split('/').filter(s => s.length > 0);
+        
+        if (segments.length > 0) {
+          const lastSegment = segments[segments.length - 1];
+          // Clean up the product name
+          return this.cleanProductName(lastSegment);
+        }
+        
+        // Check if product name is after /dp/ASIN/
+        const afterDp = pathname.substring(dpIndex + 4); // Skip '/dp/'
+        const asinMatch = afterDp.match(/^[A-Z0-9]{10}\/?(.+)?/);
+        if (asinMatch && asinMatch[1]) {
+          const productPart = asinMatch[1].split('/')[0];
+          return this.cleanProductName(productPart);
+        }
+      }
+      
+      // Fallback: look for product name in other parts of the URL
+      const segments = pathname.split('/').filter(s => s.length > 2 && !s.match(/^[A-Z0-9]{10}$/));
+      if (segments.length > 0) {
+        return this.cleanProductName(segments[segments.length - 1]);
+      }
+    } catch (error) {
+      console.warn('Failed to extract product name from URL:', url, error);
+    }
+    
+    return '';
+  }
+
+  private cleanProductName(rawName: string): string {
+    return rawName
+      .replace(/[-_+]/g, ' ') // Replace dashes, underscores, plus with spaces
+      .replace(/\b\w/g, l => l.toUpperCase()) // Title case
+      .replace(/\s+/g, ' ') // Remove extra spaces
+      .trim()
+      .substring(0, 60); // Limit length
+  }
+
+  private async fetchCompetitorData(asin: string, originalUrl?: string): Promise<{ target: TargetData; competitors: CompetitorData[] }> {
     try {
       const response = await fetch('/api/openai/competitor-data', {
         method: 'POST',
@@ -118,11 +169,11 @@ class DataProcessor {
       return data;
     } catch (error) {
       console.warn(`Failed to fetch real data for ${asin}, using fallback:`, error);
-      return this.generateFallbackData(asin);
+      return this.generateFallbackData(asin, originalUrl);
     }
   }
 
-  private generateFallbackData(asin: string): { target: TargetData; competitors: CompetitorData[] } {
+  private generateFallbackData(asin: string, originalUrl?: string): { target: TargetData; competitors: CompetitorData[] } {
     // Deterministic random based on ASIN
     const seed = asin.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const random = (min: number, max: number) => {
@@ -133,9 +184,33 @@ class DataProcessor {
     const brands = ['RENPHO', 'ACME', 'GADGY', 'FLEXO', 'TechPro', 'SmartLife'];
     const price = Math.round((random(1400, 4900) / 100) * 100) / 100;
     
+    // Generate more realistic product names
+    const productTypes = ['Wireless Headphones', 'Smart Watch', 'Bluetooth Speaker', 'Fitness Tracker', 'Phone Case', 'Kitchen Scale', 'LED Desk Lamp', 'Portable Charger', 'Gaming Mouse', 'Yoga Mat'];
+    const adjectives = ['Premium', 'Ultra', 'Pro', 'Advanced', 'Smart', 'Compact', 'Ergonomic', 'High-Performance'];
+    
+    let productName = `Product ${asin}`;
+    
+    // Try to extract from URL first
+    if (originalUrl) {
+      const extractedName = this.extractProductNameFromUrl(originalUrl);
+      if (extractedName) {
+        productName = extractedName;
+      } else {
+        // Generate realistic fallback name
+        const adjective = adjectives[random(0, adjectives.length - 1)];
+        const productType = productTypes[random(0, productTypes.length - 1)];
+        productName = `${adjective} ${productType}`;
+      }
+    } else {
+      // Generate realistic fallback name
+      const adjective = adjectives[random(0, adjectives.length - 1)];
+      const productType = productTypes[random(0, productTypes.length - 1)];
+      productName = `${adjective} ${productType}`;
+    }
+    
     const target: TargetData = {
       asin,
-      product_name: `Product ${asin}`,
+      product_name: productName,
       brand: brands[random(0, brands.length - 1)],
       price,
       est_daily_impressions: random(800, 5000),
@@ -150,10 +225,13 @@ class DataProcessor {
     const numCompetitors = random(3, 5);
     
     for (let i = 0; i < numCompetitors; i++) {
+      const compAdjective = adjectives[random(0, adjectives.length - 1)];
+      const compType = productTypes[random(0, productTypes.length - 1)];
+      
       competitors.push({
         rank: i + 1,
         comp_asin: `C${asin.slice(-6)}${i}`,
-        product_name: `Competitor ${i + 1} for ${asin}`,
+        product_name: `${compAdjective} ${compType} ${i + 1}`,
         brand_name: brands[random(0, brands.length - 1)],
         price: Math.round(price * (random(85, 115) / 100) * 100) / 100,
         rating: Math.round(Math.min(4.9, Math.max(3.2, target.avg_rating + (random(-4, 4) / 10))) * 10) / 10,
@@ -325,6 +403,7 @@ class DataProcessor {
     const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     return {
+      fileName,
       runId,
       generatedAt: new Date().toISOString(),
       portfolio: {
