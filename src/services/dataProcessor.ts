@@ -151,29 +151,6 @@ class DataProcessor {
       .substring(0, 60); // Limit length
   }
 
-  private extractNameFromApiResponse(data: any): string | null {
-    // Try common keys that APIs tend to use
-    const keys = ["product_name", "title", "name", "productTitle", "product"];
-    
-    for (const key of keys) {
-      const value = data[key];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
-      }
-      // Some APIs return nested object for product
-      if (typeof value === 'object' && value !== null) {
-        const nestedKeys = ["name", "title", "product_name"];
-        for (const nestedKey of nestedKeys) {
-          const nestedValue = value[nestedKey];
-          if (typeof nestedValue === 'string' && nestedValue.trim()) {
-            return nestedValue.trim();
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   private async fetchCompetitorData(asin: string, originalUrl?: string): Promise<{ target: TargetData; competitors: CompetitorData[] }> {
     try {
       const response = await fetch('/api/openai/competitor-data', {
@@ -189,40 +166,7 @@ class DataProcessor {
       }
 
       const data = await response.json();
-      
-      // Process target data with improved name extraction
-      const targetData = data.target || {};
-      const target: TargetData = {
-        asin: targetData.asin || asin,
-        product_name: this.extractNameFromApiResponse(targetData) || 
-                     this.extractProductNameFromUrl(originalUrl || '') || 
-                     `Product ${asin}`,
-        brand: targetData.brand || 'Unknown',
-        price: targetData.price || 0,
-        est_daily_impressions: targetData.est_daily_impressions || 0,
-        est_daily_clicks: targetData.est_daily_clicks || 0,
-        ratings_count: targetData.ratings_count || 0,
-        avg_rating: targetData.avg_rating || 0,
-        keywords_top4: targetData.keywords_top4 || targetData.keywords_in_top_4 || 0,
-        keywords_page1: targetData.keywords_page1 || targetData.keywords_on_page_1 || 0,
-      };
-
-      // Process competitors data with improved name extraction
-      const competitorsData = data.competitors || data.top_five || [];
-      const competitors: CompetitorData[] = competitorsData.map((comp: any, index: number) => ({
-        rank: comp.rank || index + 1,
-        comp_asin: comp.asin || `COMP${index + 1}`,
-        product_name: this.extractNameFromApiResponse(comp) || `Competitor ${index + 1}`,
-        brand_name: comp.brand || 'Unknown',
-        price: comp.price || 0,
-        rating: comp.avg_rating || comp.rating || 0,
-        ratings_count: comp.ratings_count || 0,
-        keywords_top4: comp.keywords_top4 || comp.keywords_in_top_4 || 0,
-        keywords_page1: comp.keywords_page1 || comp.keywords_on_page_1 || 0,
-        est_daily_clicks: comp.est_daily_clicks || 0,
-      }));
-
-      return { target, competitors };
+      return data;
     } catch (error) {
       console.warn(`Failed to fetch real data for ${asin}, using fallback:`, error);
       return this.generateFallbackData(asin, originalUrl);
@@ -424,7 +368,7 @@ class DataProcessor {
       const row = validRows.find(r => r.asin === asin);
       const label = row?.label || `Product ${asin}`;
       
-      const { target, competitors } = await this.fetchCompetitorData(asin!, row?.url);
+      const { target, competitors } = await this.fetchCompetitorData(asin!);
       
       const comp_avg = {
         price: competitors.reduce((sum, c) => sum + c.price, 0) / competitors.length,
@@ -439,7 +383,7 @@ class DataProcessor {
 
       processedAsins.push({
         asin: asin!,
-        label: target.product_name, // Use the extracted product name as label
+        label,
         target,
         comp_avg,
         competitors,
